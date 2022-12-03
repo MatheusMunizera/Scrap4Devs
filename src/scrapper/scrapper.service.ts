@@ -1,13 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import * as puppeteer from 'puppeteer';
-
+import * as puppeteer from 'puppeteer-core';
+import chromium from 'chrome-aws-lambda';
 
 @Injectable()
 export class ScrapperService {
     async getDataViaPuppeteer() {
         const URL = `https://www.4devs.com.br/gerador_de_pessoas`;
-        const browser = await puppeteer.launch({
-            headless: false,
+        const browser = await chromium.puppeteer.launch({
+            args: [...chromium.args, "--hide-scrollbars", "--disable-web-security"],
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath,
+            headless: true,
+            ignoreHTTPSErrors: true,
+            // headless: false,
         });
         const page = await browser.newPage();
         await page.goto(URL, { "waitUntil": "networkidle2" });
