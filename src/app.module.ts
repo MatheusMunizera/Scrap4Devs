@@ -15,11 +15,6 @@ const envFilePath: string = getEnvPath(`${__dirname}/envs`);
     }),
   ],
   controllers: [ScraperController],
-  providers: [
-    {
-      provide:  ScraperService,
-      useClass: ScraperService
-    }
-  ]
+  providers: [ScraperService]
 })
 export class AppModule { }

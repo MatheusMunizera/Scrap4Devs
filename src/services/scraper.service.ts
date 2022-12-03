@@ -43,7 +43,7 @@ export class ScraperService {
         //#endregion
 
         try {
-            const URL = `https://www.4devs.com.br/gerador_de_pessoas`;
+            const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_pessoas`;
             const browser = await puppeteer.launch(options);
             const page = await browser.newPage();
             await page.goto(URL, {'timeout':0, "waitUntil": "domcontentloaded" });
