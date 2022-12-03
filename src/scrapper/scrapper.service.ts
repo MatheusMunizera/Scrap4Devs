@@ -48,7 +48,6 @@ export class ScrapperService {
 
 
             console.log('getDataViaPuppeteer results :', results);
-            await browser.close();
             return JSON.parse(results);
         } catch (err) {
             console.error(err);
