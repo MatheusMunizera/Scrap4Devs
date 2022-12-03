@@ -64,5 +64,5 @@ export class ScrapperService {
             return null;
         }
 
-    
+    }
 }
