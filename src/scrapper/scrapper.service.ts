@@ -18,15 +18,13 @@ export class ScrapperService {
 
         if (process.env.AWS_LAMBDA_FUNCTION_VERSION) {
             options = {
-                args: [...chrome.args, "--hide-scrollbars", "--disable-web-security","--no-sandbox"],
+                args: [...chrome.args, "--hide-scrollbars", "--disable-web-security"],
                 defaultViewport: chrome.defaultViewport,
                 executablePath: await chrome.executablePath,
                 headless: true,
                 ignoreHTTPSErrors: true,
             };
         }
-
-        console.log(await chrome.executablePath)
 
         try {
             let browser = await puppeteer.launch(options);
