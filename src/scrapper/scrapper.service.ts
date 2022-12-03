@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class ScrapperService {
     async getDataViaPuppeteer() {
+        console.time('Scrapper')
         let chrome: any = {};
         let puppeteer;
 
@@ -25,32 +26,19 @@ export class ScrapperService {
                 ignoreHTTPSErrors: true,
             };
         }
-
-        // try {
-        //     let browser = await puppeteer.launch(options);
-        
-        //     let page = await browser.newPage();
-        //     await page.goto("https://www.google.com");
-        //     return await page.title();
-        //   } catch (err) {
-        //     console.error(err);
-        //     return null;
-        //   }
-        // }; 
-
         try {
             const URL = `https://www.4devs.com.br/gerador_de_pessoas`;
             const browser = await puppeteer.launch(options);
             const page = await browser.newPage();
-            await page.goto(URL, { "waitUntil": "networkidle2" });
+            await page.goto(URL, {'timeout':0, "waitUntil": "domcontentloaded" });
             await page.evaluate(async () => {
                 document.querySelector('#bt_gerar_pessoa').dispatchEvent(new CustomEvent('click'));
             });
-
+            
             await page.waitForFunction(
-                'document.querySelector("#dados_json").innerText.includes("nome")'
+                'document.querySelector("#dados_json").textContent.includes("nome")'
             );
-
+            
             const results = await page.evaluate(async () => {
                 const data = document.querySelector('#dados_json').textContent;
                 return data;
@@ -58,7 +46,9 @@ export class ScrapperService {
 
 
             console.log('getDataViaPuppeteer results :', results);
-            return JSON.parse(results);
+            console.timeEnd('Scrapper')
+            
+             return JSON.parse(results);
         } catch (err) {
             console.error(err);
             return null;
