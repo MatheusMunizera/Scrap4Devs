@@ -1,10 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PersonEntity } from '../core/domain/entities/person.entity';
+import { PersonResponseMapper } from '../core/domain/mappers/person/person-response.mapper';
+import { PersonResponseDto } from '../shared/dtos/person/person-response.dto';
 
 
 @Injectable()
-export class ScrapperService {
-    async getDataViaPuppeteer() {
-        console.time('Scrapper')
+export class ScraperService {
+    @Inject(ConfigService)
+
+    public baseUrl: string = process.env.BASE_URL_4DEVS;
+    public config: ConfigService;
+  
+    constructor() {}
+
+
+    async getPerson(): Promise<PersonResponseDto> {
+        console.time('Scrapping')
+
+        //#region Core puppeteer and ChromeAwsLambda
         let chrome: any = {};
         let puppeteer;
 
@@ -26,12 +40,15 @@ export class ScrapperService {
                 ignoreHTTPSErrors: true,
             };
         }
+        //#endregion
+
         try {
             const URL = `https://www.4devs.com.br/gerador_de_pessoas`;
             const browser = await puppeteer.launch(options);
             const page = await browser.newPage();
             await page.goto(URL, {'timeout':0, "waitUntil": "domcontentloaded" });
             await page.evaluate(async () => {
+                document.querySelector('#pontuacao_sim').setAttribute('value', 'N');
                 document.querySelector('#bt_gerar_pessoa').dispatchEvent(new CustomEvent('click'));
             });
             
@@ -41,14 +58,17 @@ export class ScrapperService {
             
             const results = await page.evaluate(async () => {
                 const data = document.querySelector('#dados_json').textContent;
-                return data;
+                
+                return JSON.parse(data) as [PersonEntity];
             });
-
-
-            console.log('getDataViaPuppeteer results :', results);
-            console.timeEnd('Scrapper')
+           
+            const personResponseMapper = new PersonResponseMapper();
             
-             return JSON.parse(results);
+            var person = personResponseMapper.mapTo(results[0]);
+
+            console.timeEnd('Scrapping')
+            return person;
+
         } catch (err) {
             console.error(err);
             return null;
