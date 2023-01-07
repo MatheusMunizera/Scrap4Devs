@@ -16,6 +16,8 @@ export class ScraperService {
 
   constructor() {}
 
+  //#region Private Methods
+  
   private async defineChromePuppeterOptions() {
     let chrome: any = {};
     let puppeteer;
@@ -47,6 +49,29 @@ export class ScraperService {
     return { chrome, puppeteer, options };
   }
 
+  private async generateCard(brand: BrandEnum, page: any) {
+    const generateCard = `gerar_cc('${brand}')`;
+    await page.addScriptTag({ content: generateCard });
+
+    return new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        const data = await page.evaluate(() => {
+          const cardNumber =
+            document.querySelector('#cartao_numero').textContent;
+          const expirationDate =
+            document.querySelector('#data_validade').textContent;
+          const securityCode =
+            document.querySelector('#codigo_seguranca').textContent;
+          return { cardNumber, expirationDate, securityCode };
+        });
+        resolve(data);
+      }, 1500);
+    });
+  }
+
+  //#endregion
+
+  //#region Public Methods
   async getPerson(): Promise<PersonResponseDto> {
     console.time('Scrapping Person');
 
@@ -102,6 +127,7 @@ export class ScraperService {
       var card = cardResponseMapper.mapTo(result as CardEntity);
       card.brand = brand;
       console.log(card);
+      console.timeEnd('Scrapping Card');
       return card;
     } catch (error) {
       console.timeEnd('Scrapping Card');
@@ -109,23 +135,7 @@ export class ScraperService {
     }
   }
 
-  private async generateCard(brand: BrandEnum, page: any) {
-    const generateCard = `gerar_cc('${brand}')`;
-    await page.addScriptTag({ content: generateCard });
+  //#endregion
 
-    return new Promise((resolve, reject) => {
-      setTimeout(async () => {
-        const data = await page.evaluate(() => {
-          const cardNumber =
-            document.querySelector('#cartao_numero').textContent;
-          const expirationDate =
-            document.querySelector('#data_validade').textContent;
-          const securityCode =
-            document.querySelector('#codigo_seguranca').textContent;
-          return { cardNumber, expirationDate, securityCode };
-        });
-        resolve(data);
-      }, 1500);
-    });
-  }
+ 
 }
