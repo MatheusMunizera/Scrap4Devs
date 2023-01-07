@@ -1,11 +1,11 @@
 import { Mapper } from '../../../base/mapper';
 import { PersonEntity } from '../../entities/person.entity';
-import { PersonResponseDto } from '../../../../shared/dtos/person/person-response.dto';
+import { PersonResponse } from '../../../../shared/response/person/person-response';
 
 export class PersonResponseMapper
-  implements Mapper<PersonResponseDto, PersonEntity>
+  implements Mapper<PersonResponse, PersonEntity>
 {
-  public mapFrom(response: PersonResponseDto): PersonEntity {
+  public mapFrom(response: PersonResponse): PersonEntity {
     const person = new PersonEntity();
 
 
@@ -33,9 +33,9 @@ export class PersonResponseMapper
     return person;
   }
 
-  public mapTo(person: PersonEntity): PersonResponseDto {
+  public mapTo(person: PersonEntity): PersonResponse {
 
-    const response = new PersonResponseDto();
+    const response = new PersonResponse();
     
     const [month, day, year] = person?.data_nasc.split('/');
 

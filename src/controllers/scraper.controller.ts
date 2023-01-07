@@ -1,15 +1,18 @@
 import {
+  Param,
   Controller,
   Get,
   HttpException,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
-import { ApiTags, ApiResponse } from '@nestjs/swagger';
-import { PersonDto } from '../shared/dtos/person/person.dto';
+import { ApiTags, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { NotFoundSwagger } from '../helpers/swagger/not-found.swagger';
 import { ScraperService } from '../services/scraper.service';
-import { PersonResponseDto } from '../shared/dtos/person/person-response.dto';
+import { PersonResponse } from '../shared/response/person/person-response';
 import { NoContentSwagger } from '../helpers/swagger/no-content.swagger';
+import { BrandEnum } from '../shared/enum/brand.enum';
+import { CardResponse } from '../shared/response/card/card-response';
 
 
 @ApiTags('Scraper')
@@ -21,7 +24,7 @@ export class ScraperController {
   @ApiResponse({
     status: 200,
     description: 'Person generated',
-    type: [PersonResponseDto],
+    type: PersonResponse,
   })
   @ApiResponse({
     status: 404,
@@ -33,12 +36,37 @@ export class ScraperController {
     description: 'Cannot generate a person',
     type: NoContentSwagger,
   })
-  async scraperController(): Promise<PersonResponseDto> {
+  async generatePerson(): Promise<PersonResponse> {
     const person =  await this.scrapperService.getPerson();
     if(person == null)
       throw new HttpException('Cannot generate a person, try again.', HttpStatus.NO_CONTENT);
       
     return person;
+  }
+
+  @Get('generate/card')
+  @ApiResponse({
+    status: 200,
+    description: 'Card generated',
+    type: CardResponse
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Error generating card',
+    type: NotFoundSwagger,
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Cannot generate a card',
+    type: NoContentSwagger,
+  })
+  @ApiQuery({ name: 'brand', enum: BrandEnum, required: true })
+  async generateCard(@Query('brand') brand: BrandEnum): Promise<CardResponse> {
+    const card=  await this.scrapperService.getCard(brand);
+    if(card == null)
+      throw new HttpException('Cannot generate a person, try again.', HttpStatus.NO_CONTENT);
+      
+    return card;
   }
 }
 
