@@ -4,8 +4,8 @@ import { CardEntity } from '../core/domain/entities/card.entity';
 import { PersonEntity } from '../core/domain/entities/person.entity';
 import { CardResponseMapper } from '../core/domain/mappers/card/card-response.mapper';
 import { PersonResponseMapper } from '../core/domain/mappers/person/person-response.mapper';
-import { CardResponse } from '../shared/dtos/card/card-response';
-import { PersonResponseDto } from '../shared/dtos/person/person-response.dto';
+import { CardResponse } from '../shared/response/card/card-response';
+import { PersonResponse } from '../shared/response/person/person-response';
 import { BrandEnum } from '../shared/enum/brand.enum';
 
 @Injectable()
@@ -17,7 +17,7 @@ export class ScraperService {
   constructor() {}
 
   //#region Private Methods
-  
+
   private async defineChromePuppeterOptions() {
     let chrome: any = {};
     let puppeteer;
@@ -69,63 +69,77 @@ export class ScraperService {
     });
   }
 
+  private Logger(message: string) {
+    console.log(message);
+  }
+
   //#endregion
 
   //#region Public Methods
-  async getPerson(): Promise<PersonResponseDto> {
+  async getPerson(): Promise<PersonResponse> {
+    this.Logger('Starting Scrapping Person');
     console.time('Scrapping Person');
 
     const { chrome, puppeteer, options } =
       await this.defineChromePuppeterOptions();
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_pessoas`;
+    this.Logger(`Requesting URL:"${URL}"`);
+
     const browser = await puppeteer.launch(options);
     const page = await browser.newPage();
     await page.goto(URL, { timeout: 0, waitUntil: 'domcontentloaded' });
+    this.Logger('Page Loaded');
+
     await page.evaluate(async () => {
       document.querySelector('#pontuacao_sim').setAttribute('value', 'N');
       document
         .querySelector('#bt_gerar_pessoa')
         .dispatchEvent(new CustomEvent('click'));
     });
+    this.Logger('Click on Generate Person');
 
     await page.waitForFunction(
       'document.querySelector("#dados_json").textContent.includes("nome")',
     );
-
+    this.Logger('Person Generated');
     const results = await page.evaluate(async () => {
       const data = document.querySelector('#dados_json').textContent;
 
       return JSON.parse(data) as [PersonEntity];
     });
+    this.Logger('Person Scrapped');
 
     const personResponseMapper = new PersonResponseMapper();
 
     var person = personResponseMapper.mapTo(results[0]);
-
+    console.log(person);
     console.timeEnd('Scrapping Person');
     return person;
   }
 
   async getCard(brand: BrandEnum): Promise<CardResponse> {
     try {
+      this.Logger('Starting Scrapping Card');
       console.time('Scrapping Card');
 
       const { chrome, puppeteer, options } =
         await this.defineChromePuppeterOptions();
 
       const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_numero_cartao_credito`;
-
+      this.Logger(`Requesting URL:"${URL}"`);
       const browser = await puppeteer.launch(options);
 
       const page = await browser.newPage();
 
       await page.goto(URL, { timeout: 10000, waitUntil: 'domcontentloaded' });
-
+      this.Logger('Page Loaded');
       const result = await this.generateCard(brand, page);
+      this.Logger('Card Generated');
       const cardResponseMapper = new CardResponseMapper();
       var card = cardResponseMapper.mapTo(result as CardEntity);
       card.brand = brand;
+      this.Logger('Card Scrapped');
       console.log(card);
       console.timeEnd('Scrapping Card');
       return card;
@@ -136,6 +150,4 @@ export class ScraperService {
   }
 
   //#endregion
-
- 
 }

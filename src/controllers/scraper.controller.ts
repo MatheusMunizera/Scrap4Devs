@@ -7,13 +7,12 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { PersonDto } from '../shared/dtos/person/person.dto';
 import { NotFoundSwagger } from '../helpers/swagger/not-found.swagger';
 import { ScraperService } from '../services/scraper.service';
-import { PersonResponseDto } from '../shared/dtos/person/person-response.dto';
+import { PersonResponse } from '../shared/response/person/person-response';
 import { NoContentSwagger } from '../helpers/swagger/no-content.swagger';
 import { BrandEnum } from '../shared/enum/brand.enum';
-import { CardResponse } from '../shared/dtos/card/card-response';
+import { CardResponse } from '../shared/response/card/card-response';
 
 
 @ApiTags('Scraper')
@@ -25,7 +24,7 @@ export class ScraperController {
   @ApiResponse({
     status: 200,
     description: 'Person generated',
-    type: [PersonResponseDto],
+    type: PersonResponse,
   })
   @ApiResponse({
     status: 404,
@@ -37,7 +36,7 @@ export class ScraperController {
     description: 'Cannot generate a person',
     type: NoContentSwagger,
   })
-  async generatePerson(): Promise<PersonResponseDto> {
+  async generatePerson(): Promise<PersonResponse> {
     const person =  await this.scrapperService.getPerson();
     if(person == null)
       throw new HttpException('Cannot generate a person, try again.', HttpStatus.NO_CONTENT);

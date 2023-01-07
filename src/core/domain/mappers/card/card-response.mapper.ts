@@ -1,7 +1,5 @@
 import { Mapper } from '../../../base/mapper';
-import { PersonEntity } from '../../entities/person.entity';
-import { PersonResponseDto } from '../../../../shared/dtos/person/person-response.dto';
-import { CardResponse } from '../../../../shared/dtos/card/card-response';
+import { CardResponse } from '../../../../shared/response/card/card-response';
 import { CardEntity } from '../../entities/card.entity';
 
 export class CardResponseMapper

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class PersonResponseDto {
+export class PersonResponse {
 
  
  
