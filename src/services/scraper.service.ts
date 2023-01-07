@@ -116,7 +116,7 @@ export class ScraperService {
 
       const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_numero_cartao_credito`;
 
-      const browser = await puppeteer.launch({ headless: true });
+      const browser = await puppeteer.launch(options);
 
       const page = await browser.newPage();
 
