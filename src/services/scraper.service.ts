@@ -1,20 +1,37 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CardEntity } from '../core/domain/entities/card.entity';
 import { PersonEntity } from '../core/domain/entities/person.entity';
 import { CardResponseMapper } from '../core/domain/mappers/card/card-response.mapper';
 import { PersonResponseMapper } from '../core/domain/mappers/person/person-response.mapper';
-import { CardResponse } from '../shared/response/card/card-response';
-import { PersonResponse } from '../shared/response/person/person-response';
+import { CardResponse } from '../shared/response/card/card.response';
+import { PersonResponse } from '../shared/response/person/person.response';
 import { BrandEnum } from '../shared/enum/brand.enum';
+import { DriverLicenseResponse } from '../shared/response/driver/driver-license.response';
+import { DriverResponse } from '../shared/response/driver/driver.response';
+import { CnhEntity } from '../core/domain/entities/cnh.entity';
+import { VehicleResponse } from '../shared/response/driver/vehicle.response';
+import { VehicleEntity } from '../core/domain/entities/vehicle.entity';
+import { VehicleResponseMapper } from '../core/domain/mappers/vehicle/vehicle-response.mapper';
 
 @Injectable()
-export class ScraperService {
+export class ScraperService implements OnModuleInit{
   @Inject(ConfigService)
   public baseUrl: string = process.env.BASE_URL_4DEVS;
   public config: ConfigService;
-
-  constructor() {}
+  public chrome;
+  public puppeteer;
+  public options;
+  
+  async onModuleInit(){
+    const { chrome, puppeteer, options } = await this.defineChromePuppeterOptions();
+    this.chrome = chrome;
+    this.puppeteer = puppeteer;
+    this.options = options;
+  }
+  constructor() {
+    
+  }
 
   //#region Private Methods
 
@@ -65,7 +82,7 @@ export class ScraperService {
           return { cardNumber, expirationDate, securityCode };
         });
         resolve(data);
-      }, 1500);
+      }, 500);
     });
   }
 
@@ -73,6 +90,106 @@ export class ScraperService {
     console.log(message);
   }
 
+  private async generateDriverLicense(page: any): Promise<CnhEntity>{
+
+    const generateRegister = `gerar()`;
+    await page.addScriptTag({ content: generateRegister });
+
+    this.Logger('DriverLicense Generated on the page');
+
+    return new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        const result = await page.evaluate(() => {
+          const data = document.getElementById('texto_cnh') as HTMLInputElement;
+          return { numeroRegistro: data.value };
+        }) as CnhEntity;         
+        resolve(result);
+      }, 500);
+    });
+
+    
+
+  }
+
+  private async generateVehicle(page: any): Promise<VehicleEntity> {
+    const generateVehicle = `gerar()`;
+    await page.addScriptTag({ content: generateVehicle });
+    this.Logger('Vehicle Generated on the page');
+
+    return new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        const vehicle = await page.evaluate(async () => {
+
+          const brand = document.querySelector('#marca').getAttribute('value');
+          const model = document.querySelector('#modelo').getAttribute('value');
+          const year = document.querySelector('#ano').getAttribute('value');
+          const reindeer = document.querySelector('#renavam').getAttribute('value');
+          const licensePlate = document.querySelector('#placa_veiculo').getAttribute('value');
+          const color = document.querySelector('#cor').getAttribute('value');
+    
+          return {
+            marca: brand,
+            modelo: model,
+            ano: year,
+            renavam: reindeer,
+            placa: licensePlate,
+            cor: color,
+          };
+    
+        }) as VehicleEntity;
+
+        resolve(vehicle);
+      }, 500);
+    });
+    
+  }
+
+  private async getDriverLicense(): Promise<DriverLicenseResponse> {
+    const personData = await this.getPerson();
+    this.Logger('Starting Scrapping DriverLicense');
+    console.time('Scrapping DriverLicense');
+    
+
+    const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_cnh`;
+    this.Logger(`Requesting URL:"${URL}"`);
+    const browser = await this.puppeteer.launch(this.options);
+    const page = await browser.newPage();
+    await page.goto(URL, { timeout: 10000, waitUntil: 'domcontentloaded' });
+    this.Logger('Page Loaded');
+
+    const cnh = await this.generateDriverLicense(page);
+    this.Logger('Driver License Scrapped from the page');
+    
+    const driverLicense = new DriverLicenseResponse();
+    driverLicense.fillPersonAndCnhData(personData, cnh);
+    console.log(driverLicense);
+    console.timeEnd('Scrapping DriverLicense');
+    browser.close();
+    return driverLicense;
+  }
+
+  private async getVehicle(): Promise<VehicleEntity>{
+
+    this.Logger('Starting Scrapping Vehicle');
+    console.time('Scrapping Vehicle');
+
+    const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_veiculos`;
+    this.Logger(`Requesting URL:"${URL}"`);
+    const browser = await this.puppeteer.launch(this.options);
+    const page = await browser.newPage();
+    await page.goto(URL, { timeout: 10000, waitUntil: 'domcontentloaded' });
+    this.Logger('Page Loaded');
+
+    const vehicle = await this.generateVehicle(page);
+
+    this.Logger('Vehicle Scrapped from the page');
+    console.log(vehicle)
+    console.timeEnd('Scrapping Vehicle');
+    browser.close();
+    return vehicle;
+
+  
+  }
   //#endregion
 
   //#region Public Methods
@@ -80,13 +197,10 @@ export class ScraperService {
     this.Logger('Starting Scrapping Person');
     console.time('Scrapping Person');
 
-    const { chrome, puppeteer, options } =
-      await this.defineChromePuppeterOptions();
-
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_pessoas`;
     this.Logger(`Requesting URL:"${URL}"`);
 
-    const browser = await puppeteer.launch(options);
+    const browser = await this.puppeteer.launch(this.options);
     const page = await browser.newPage();
     await page.goto(URL, { timeout: 0, waitUntil: 'domcontentloaded' });
     this.Logger('Page Loaded');
@@ -115,6 +229,7 @@ export class ScraperService {
     var person = personResponseMapper.mapTo(results[0]);
     console.log(person);
     console.timeEnd('Scrapping Person');
+    browser.close();
     return person;
   }
 
@@ -123,12 +238,9 @@ export class ScraperService {
       this.Logger('Starting Scrapping Card');
       console.time('Scrapping Card');
 
-      const { chrome, puppeteer, options } =
-        await this.defineChromePuppeterOptions();
-
       const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_numero_cartao_credito`;
       this.Logger(`Requesting URL:"${URL}"`);
-      const browser = await puppeteer.launch(options);
+      const browser = await this.puppeteer.launch(this.options);
 
       const page = await browser.newPage();
 
@@ -142,9 +254,32 @@ export class ScraperService {
       this.Logger('Card Scrapped');
       console.log(card);
       console.timeEnd('Scrapping Card');
+      browser.close();
       return card;
     } catch (error) {
       console.timeEnd('Scrapping Card');
+      console.log(error);
+    }
+  }
+
+  async getDriver(): Promise<DriverResponse> {
+    try {
+      this.Logger('Generating a Driver');
+      console.time('Scrapping Driver');
+
+       const driverLicense = await this.getDriverLicense();
+       const vehicle = await this.getVehicle();
+      
+      const vehicleResponseMapper = new VehicleResponseMapper();
+      var vehicleResponse = vehicleResponseMapper.mapTo(vehicle);      
+      const result = new DriverResponse(driverLicense, vehicleResponse);
+      this.Logger('Driver Generated');
+      console.log(result);
+      console.timeEnd('Scrapping Driver');
+      
+      return result;
+    } catch (error) {
+      console.timeEnd('Scrapping Driver');
       console.log(error);
     }
   }

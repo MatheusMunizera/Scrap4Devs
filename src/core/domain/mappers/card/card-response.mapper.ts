@@ -1,5 +1,5 @@
 import { Mapper } from '../../../base/mapper';
-import { CardResponse } from '../../../../shared/response/card/card-response';
+import { CardResponse } from '../../../../shared/response/card/card.response';
 import { CardEntity } from '../../entities/card.entity';
 
 export class CardResponseMapper
