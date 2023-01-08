@@ -93,7 +93,7 @@ export class ScraperService {
           return { numeroRegistro: data.value };
         }) as CnhEntity;         
         resolve(result);
-      }, 1000);
+      }, 500);
     });
 
     
@@ -128,7 +128,7 @@ export class ScraperService {
         }) as VehicleEntity;
 
         resolve(vehicle);
-      }, 1000);
+      }, 500);
     });
     
   }
