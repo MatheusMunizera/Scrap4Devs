@@ -164,7 +164,7 @@ export class ScraperService implements OnModuleInit{
     driverLicense.fillPersonAndCnhData(personData, cnh);
     console.log(driverLicense);
     console.timeEnd('Scrapping DriverLicense');
-    page.close()
+    browser.close();
     return driverLicense;
   }
 
@@ -185,7 +185,7 @@ export class ScraperService implements OnModuleInit{
     this.Logger('Vehicle Scrapped from the page');
     console.log(vehicle)
     console.timeEnd('Scrapping Vehicle');
-    page.close();
+    browser.close();
     return vehicle;
 
   
@@ -229,7 +229,7 @@ export class ScraperService implements OnModuleInit{
     var person = personResponseMapper.mapTo(results[0]);
     console.log(person);
     console.timeEnd('Scrapping Person');
-    page.close();
+    browser.close();
     return person;
   }
 
@@ -254,6 +254,7 @@ export class ScraperService implements OnModuleInit{
       this.Logger('Card Scrapped');
       console.log(card);
       console.timeEnd('Scrapping Card');
+      browser.close();
       return card;
     } catch (error) {
       console.timeEnd('Scrapping Card');
@@ -275,6 +276,7 @@ export class ScraperService implements OnModuleInit{
       this.Logger('Driver Generated');
       console.log(result);
       console.timeEnd('Scrapping Driver');
+      
       return result;
     } catch (error) {
       console.timeEnd('Scrapping Driver');
