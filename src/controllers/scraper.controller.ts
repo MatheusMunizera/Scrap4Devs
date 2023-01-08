@@ -9,10 +9,11 @@ import {
 import { ApiTags, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { NotFoundSwagger } from '../helpers/swagger/not-found.swagger';
 import { ScraperService } from '../services/scraper.service';
-import { PersonResponse } from '../shared/response/person/person-response';
+import { PersonResponse } from '../shared/response/person/person.response';
 import { NoContentSwagger } from '../helpers/swagger/no-content.swagger';
 import { BrandEnum } from '../shared/enum/brand.enum';
-import { CardResponse } from '../shared/response/card/card-response';
+import { CardResponse } from '../shared/response/card/card.response';
+import { DriverResponse } from '../shared/response/driver/driver.response';
 
 
 @ApiTags('Scraper')
@@ -67,6 +68,30 @@ export class ScraperController {
       throw new HttpException('Cannot generate a person, try again.', HttpStatus.NO_CONTENT);
       
     return card;
+  }
+
+  @Get('generate/driver')
+  @ApiResponse({
+    status: 200,
+    description: 'Driver generated',
+    type: DriverResponse
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Error generating driver',
+    type: NotFoundSwagger,
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Cannot generate a driver',
+    type: NoContentSwagger,
+  })
+  async generateDriver(): Promise<DriverResponse> {
+    const driver=  await this.scrapperService.getDriver();
+    if(driver == null)
+      throw new HttpException('Cannot generate a person, try again.', HttpStatus.NO_CONTENT);
+      
+    return driver;
   }
 }
 

@@ -1,6 +1,6 @@
 import { Mapper } from '../../../base/mapper';
 import { PersonEntity } from '../../entities/person.entity';
-import { PersonResponse } from '../../../../shared/response/person/person-response';
+import { PersonResponse } from '../../../../shared/response/person/person.response';
 
 export class PersonResponseMapper
   implements Mapper<PersonResponse, PersonEntity>
