@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CardEntity } from '../core/domain/entities/card.entity';
 import { PersonEntity } from '../core/domain/entities/person.entity';
@@ -15,12 +15,23 @@ import { VehicleEntity } from '../core/domain/entities/vehicle.entity';
 import { VehicleResponseMapper } from '../core/domain/mappers/vehicle/vehicle-response.mapper';
 
 @Injectable()
-export class ScraperService {
+export class ScraperService implements OnModuleInit{
   @Inject(ConfigService)
   public baseUrl: string = process.env.BASE_URL_4DEVS;
   public config: ConfigService;
-
-  constructor() {}
+  public chrome;
+  public puppeteer;
+  public options;
+  
+  async onModuleInit(){
+    const { chrome, puppeteer, options } = await this.defineChromePuppeterOptions();
+    this.chrome = chrome;
+    this.puppeteer = puppeteer;
+    this.options = options;
+  }
+  constructor() {
+    
+  }
 
   //#region Private Methods
 
@@ -71,7 +82,7 @@ export class ScraperService {
           return { cardNumber, expirationDate, securityCode };
         });
         resolve(data);
-      }, 1500);
+      }, 500);
     });
   }
 
@@ -137,12 +148,11 @@ export class ScraperService {
     const personData = await this.getPerson();
     this.Logger('Starting Scrapping DriverLicense');
     console.time('Scrapping DriverLicense');
-    const { chrome, puppeteer, options } =
-      await this.defineChromePuppeterOptions();
+    
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_cnh`;
     this.Logger(`Requesting URL:"${URL}"`);
-    const browser = await puppeteer.launch(options);
+    const browser = await this.puppeteer.launch(this.options);
     const page = await browser.newPage();
     await page.goto(URL, { timeout: 10000, waitUntil: 'domcontentloaded' });
     this.Logger('Page Loaded');
@@ -154,6 +164,7 @@ export class ScraperService {
     driverLicense.fillPersonAndCnhData(personData, cnh);
     console.log(driverLicense);
     console.timeEnd('Scrapping DriverLicense');
+    page.close()
     return driverLicense;
   }
 
@@ -161,12 +172,10 @@ export class ScraperService {
 
     this.Logger('Starting Scrapping Vehicle');
     console.time('Scrapping Vehicle');
-    const { chrome, puppeteer, options } =
-      await this.defineChromePuppeterOptions();
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_veiculos`;
     this.Logger(`Requesting URL:"${URL}"`);
-    const browser = await puppeteer.launch(options);
+    const browser = await this.puppeteer.launch(this.options);
     const page = await browser.newPage();
     await page.goto(URL, { timeout: 10000, waitUntil: 'domcontentloaded' });
     this.Logger('Page Loaded');
@@ -176,6 +185,7 @@ export class ScraperService {
     this.Logger('Vehicle Scrapped from the page');
     console.log(vehicle)
     console.timeEnd('Scrapping Vehicle');
+    page.close();
     return vehicle;
 
   
@@ -187,13 +197,10 @@ export class ScraperService {
     this.Logger('Starting Scrapping Person');
     console.time('Scrapping Person');
 
-    const { chrome, puppeteer, options } =
-      await this.defineChromePuppeterOptions();
-
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_pessoas`;
     this.Logger(`Requesting URL:"${URL}"`);
 
-    const browser = await puppeteer.launch(options);
+    const browser = await this.puppeteer.launch(this.options);
     const page = await browser.newPage();
     await page.goto(URL, { timeout: 0, waitUntil: 'domcontentloaded' });
     this.Logger('Page Loaded');
@@ -222,6 +229,7 @@ export class ScraperService {
     var person = personResponseMapper.mapTo(results[0]);
     console.log(person);
     console.timeEnd('Scrapping Person');
+    page.close();
     return person;
   }
 
@@ -230,12 +238,9 @@ export class ScraperService {
       this.Logger('Starting Scrapping Card');
       console.time('Scrapping Card');
 
-      const { chrome, puppeteer, options } =
-        await this.defineChromePuppeterOptions();
-
       const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_numero_cartao_credito`;
       this.Logger(`Requesting URL:"${URL}"`);
-      const browser = await puppeteer.launch(options);
+      const browser = await this.puppeteer.launch(this.options);
 
       const page = await browser.newPage();
 
