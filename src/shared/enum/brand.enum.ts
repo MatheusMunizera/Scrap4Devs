@@ -1,13 +1,13 @@
 
 export enum BrandEnum{
-    MASTERCARD = 'master',
-    VISA = 'visa16',
-    AMERICAN_EXPRESS = 'amex',
-    DISCOVER = 'discover',
-    EN_ROUTE = 'enroute',
-    JCB = 'jcp',
-    VOYAGER = 'voyager',
-    HYPER = 'hyper',
-    AURA = 'aura',
-    DINNERS_CLUB = "dinners"
+    Mastercard = 'master',
+    Visa = 'visa16',
+    AmericanExpress = 'amex',
+    Discover = 'discover',
+    EnRoute = 'enroute',
+    Jcb = 'jcp',
+    Voyager = 'voyager',
+    Hyper = 'hyper',
+    Aura = 'aura',
+    DinersClub = "diners"
  }

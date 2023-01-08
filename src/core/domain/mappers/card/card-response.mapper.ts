@@ -15,12 +15,12 @@ export class CardResponseMapper
 
     const response = new CardResponse();
     
-    const [month, day, year] = card?.expirationDate.split('/');
+    const [month, day, year] = card?.dataValidade.split('/');
 
     const date = new Date(+year, +month - 1, +day);
-    const noSpaceCardNumber = card.cardNumber.replace(/\s/g, "");
+    const noSpaceCardNumber = card.numeroCartao.replace(/\s/g, "");
      response.cardNumber = +noSpaceCardNumber
-     response.securityCode = card.securityCode
+     response.securityCode = card.codigoSeguranca
      response.expirationDate = date
 
 

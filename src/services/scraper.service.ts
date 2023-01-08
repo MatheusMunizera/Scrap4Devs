@@ -13,25 +13,26 @@ import { CnhEntity } from '../core/domain/entities/cnh.entity';
 import { VehicleResponse } from '../shared/response/driver/vehicle.response';
 import { VehicleEntity } from '../core/domain/entities/vehicle.entity';
 import { VehicleResponseMapper } from '../core/domain/mappers/vehicle/vehicle-response.mapper';
+import { BankAccountEntity } from '../core/domain/entities/bank-account.entity';
+import { BankEnum } from '../shared/enum/bank.enum';
 
 @Injectable()
-export class ScraperService implements OnModuleInit{
+export class ScraperService implements OnModuleInit {
   @Inject(ConfigService)
   public baseUrl: string = process.env.BASE_URL_4DEVS;
   public config: ConfigService;
   public chrome;
   public puppeteer;
   public options;
-  
-  async onModuleInit(){
-    const { chrome, puppeteer, options } = await this.defineChromePuppeterOptions();
+
+  async onModuleInit() {
+    const { chrome, puppeteer, options } =
+      await this.defineChromePuppeterOptions();
     this.chrome = chrome;
     this.puppeteer = puppeteer;
     this.options = options;
   }
-  constructor() {
-    
-  }
+  constructor() {}
 
   //#region Private Methods
 
@@ -69,6 +70,7 @@ export class ScraperService implements OnModuleInit{
   private async generateCard(brand: BrandEnum, page: any) {
     const generateCard = `gerar_cc('${brand}')`;
     await page.addScriptTag({ content: generateCard });
+    this.Logger('Card Generated');
 
     return new Promise((resolve, reject) => {
       setTimeout(async () => {
@@ -79,7 +81,11 @@ export class ScraperService implements OnModuleInit{
             document.querySelector('#data_validade').textContent;
           const securityCode =
             document.querySelector('#codigo_seguranca').textContent;
-          return { cardNumber, expirationDate, securityCode };
+          return {
+            numeroCartao: cardNumber,
+            dataValidade: expirationDate,
+            codigoSeguranca: securityCode,
+          };
         });
         resolve(data);
       }, 500);
@@ -90,8 +96,7 @@ export class ScraperService implements OnModuleInit{
     console.log(message);
   }
 
-  private async generateDriverLicense(page: any): Promise<CnhEntity>{
-
+  private async generateDriverLicense(page: any): Promise<CnhEntity> {
     const generateRegister = `gerar()`;
     await page.addScriptTag({ content: generateRegister });
 
@@ -99,16 +104,13 @@ export class ScraperService implements OnModuleInit{
 
     return new Promise((resolve, reject) => {
       setTimeout(async () => {
-        const result = await page.evaluate(() => {
+        const result = (await page.evaluate(() => {
           const data = document.getElementById('texto_cnh') as HTMLInputElement;
           return { numeroRegistro: data.value };
-        }) as CnhEntity;         
+        })) as CnhEntity;
         resolve(result);
       }, 500);
     });
-
-    
-
   }
 
   private async generateVehicle(page: any): Promise<VehicleEntity> {
@@ -118,15 +120,18 @@ export class ScraperService implements OnModuleInit{
 
     return new Promise((resolve, reject) => {
       setTimeout(async () => {
-        const vehicle = await page.evaluate(async () => {
-
+        const vehicle = (await page.evaluate(async () => {
           const brand = document.querySelector('#marca').getAttribute('value');
           const model = document.querySelector('#modelo').getAttribute('value');
           const year = document.querySelector('#ano').getAttribute('value');
-          const reindeer = document.querySelector('#renavam').getAttribute('value');
-          const licensePlate = document.querySelector('#placa_veiculo').getAttribute('value');
+          const reindeer = document
+            .querySelector('#renavam')
+            .getAttribute('value');
+          const licensePlate = document
+            .querySelector('#placa_veiculo')
+            .getAttribute('value');
           const color = document.querySelector('#cor').getAttribute('value');
-    
+
           return {
             marca: brand,
             modelo: model,
@@ -135,20 +140,49 @@ export class ScraperService implements OnModuleInit{
             placa: licensePlate,
             cor: color,
           };
-    
-        }) as VehicleEntity;
+        })) as VehicleEntity;
 
         resolve(vehicle);
       }, 500);
     });
-    
+  }
+
+  private async generateBankAccount(
+    bank: BankEnum,
+    page: any,
+  ): Promise<BankAccountEntity> {
+    await page.waitForFunction(
+      `document.querySelector("#cc_banco").value = ${BankEnum[bank]}`,
+    );
+
+    const generateBankAccount = `gerar_cb()`;
+    await page.addScriptTag({ content: generateBankAccount });
+    this.Logger('Bank Account Generated on the page');
+
+    return new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        const bankAccount = (await page.evaluate(async () => {
+          const checkingAccount =
+            document.querySelector('#conta_corrente').textContent;
+          const agency = document.querySelector('#agencia').textContent;
+          const bank = document.querySelector('#banco').textContent;
+
+          return {
+            contaCorrente: checkingAccount,
+            agencia: agency,
+            banco: bank,
+          };
+        })) as BankAccountEntity;
+
+        resolve(bankAccount);
+      }, 2000);
+    });
   }
 
   private async getDriverLicense(): Promise<DriverLicenseResponse> {
     const personData = await this.getPerson();
     this.Logger('Starting Scrapping DriverLicense');
     console.time('Scrapping DriverLicense');
-    
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_cnh`;
     this.Logger(`Requesting URL:"${URL}"`);
@@ -159,7 +193,7 @@ export class ScraperService implements OnModuleInit{
 
     const cnh = await this.generateDriverLicense(page);
     this.Logger('Driver License Scrapped from the page');
-    
+
     const driverLicense = new DriverLicenseResponse();
     driverLicense.fillPersonAndCnhData(personData, cnh);
     console.log(driverLicense);
@@ -168,8 +202,7 @@ export class ScraperService implements OnModuleInit{
     return driverLicense;
   }
 
-  private async getVehicle(): Promise<VehicleEntity>{
-
+  private async getVehicle(): Promise<VehicleEntity> {
     this.Logger('Starting Scrapping Vehicle');
     console.time('Scrapping Vehicle');
 
@@ -183,12 +216,27 @@ export class ScraperService implements OnModuleInit{
     const vehicle = await this.generateVehicle(page);
 
     this.Logger('Vehicle Scrapped from the page');
-    console.log(vehicle)
+    console.log(vehicle);
     console.timeEnd('Scrapping Vehicle');
     browser.close();
     return vehicle;
+  }
 
-  
+  private async getBankAccount(bank: BankEnum): Promise<BankAccountEntity> {
+    this.Logger('Starting Scrapping Bank Account');
+    console.time('Scrapping Bank Account');
+    const URL = `${process.env.BASE_URL_4DEVS}/gerador_conta_bancaria`;
+    this.Logger(`Requesting URL:"${URL}"`);
+    const browser = await this.puppeteer.launch(this.options);
+    const page = await browser.newPage();
+    await page.goto(URL, { timeout: 10000, waitUntil: 'domcontentloaded' });
+    this.Logger('Page Loaded');
+    const bankAccount = await this.generateBankAccount(bank, page);
+    this.Logger('Bank Account Scrapped from the page');
+
+    console.timeEnd('Scrapping Bank Account');
+    browser.close();
+    return bankAccount;
   }
   //#endregion
 
@@ -233,10 +281,11 @@ export class ScraperService implements OnModuleInit{
     return person;
   }
 
-  async getCard(brand: BrandEnum): Promise<CardResponse> {
+  async getCard(brand: BrandEnum, bank: BankEnum): Promise<CardResponse> {
     try {
-      this.Logger('Starting Scrapping Card');
-      console.time('Scrapping Card');
+      this.Logger('Starting Scrapping CreditCard');
+      console.time('Scrapping Card and Bank Account');
+      console.time('Scrapping CreditCard');
 
       const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_numero_cartao_credito`;
       this.Logger(`Requesting URL:"${URL}"`);
@@ -247,13 +296,17 @@ export class ScraperService implements OnModuleInit{
       await page.goto(URL, { timeout: 10000, waitUntil: 'domcontentloaded' });
       this.Logger('Page Loaded');
       const result = await this.generateCard(brand, page);
-      this.Logger('Card Generated');
+      this.Logger('Card Scrapped from the page');
+      console.timeEnd('Scrapping CreditCard');
+
+      const bankAccount = await this.getBankAccount(bank);
+
       const cardResponseMapper = new CardResponseMapper();
       var card = cardResponseMapper.mapTo(result as CardEntity);
       card.brand = brand;
-      this.Logger('Card Scrapped');
+      card.fillBankAccount(bankAccount);
       console.log(card);
-      console.timeEnd('Scrapping Card');
+      console.timeEnd('Scrapping Card and Bank Account');
       browser.close();
       return card;
     } catch (error) {
@@ -267,16 +320,16 @@ export class ScraperService implements OnModuleInit{
       this.Logger('Generating a Driver');
       console.time('Scrapping Driver');
 
-       const driverLicense = await this.getDriverLicense();
-       const vehicle = await this.getVehicle();
-      
+      const driverLicense = await this.getDriverLicense();
+      const vehicle = await this.getVehicle();
+
       const vehicleResponseMapper = new VehicleResponseMapper();
-      var vehicleResponse = vehicleResponseMapper.mapTo(vehicle);      
+      var vehicleResponse = vehicleResponseMapper.mapTo(vehicle);
       const result = new DriverResponse(driverLicense, vehicleResponse);
       this.Logger('Driver Generated');
       console.log(result);
       console.timeEnd('Scrapping Driver');
-      
+
       return result;
     } catch (error) {
       console.timeEnd('Scrapping Driver');
