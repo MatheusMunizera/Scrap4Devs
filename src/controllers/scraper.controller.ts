@@ -14,6 +14,7 @@ import { NoContentSwagger } from '../helpers/swagger/no-content.swagger';
 import { BrandEnum } from '../shared/enum/brand.enum';
 import { CardResponse } from '../shared/response/card/card.response';
 import { DriverResponse } from '../shared/response/driver/driver.response';
+import { BankEnum } from '../shared/enum/bank.enum';
 
 
 @ApiTags('Scraper')
@@ -62,8 +63,9 @@ export class ScraperController {
     type: NoContentSwagger,
   })
   @ApiQuery({ name: 'brand', enum: BrandEnum, required: true })
-  async generateCard(@Query('brand') brand: BrandEnum): Promise<CardResponse> {
-    const card=  await this.scrapperService.getCard(brand);
+  @ApiQuery({ name: 'bank', enum: BankEnum, required: true })
+  async generateCard(@Query('brand') brand: BrandEnum,@Query('bank') bank: BankEnum): Promise<CardResponse> {
+    const card=  await this.scrapperService.getCard(brand, bank);
     if(card == null)
       throw new HttpException('Cannot generate a person, try again.', HttpStatus.NO_CONTENT);
       
