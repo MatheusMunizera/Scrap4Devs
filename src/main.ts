@@ -10,7 +10,7 @@ async function bootstrap() {
   
   app.enableCors();
 
-  const version = readChangeLogFileAndGetVersion();
+  const version = '1.2.0';
   const config = new DocumentBuilder()
     .setTitle('Scrap4Devs Documentation')
     .setDescription(
