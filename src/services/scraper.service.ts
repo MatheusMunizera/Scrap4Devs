@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CardEntity } from '../core/domain/entities/card.entity';
 import { PersonEntity } from '../core/domain/entities/person.entity';
@@ -182,7 +182,6 @@ export class ScraperService implements OnModuleInit {
   private async getDriverLicense(): Promise<DriverLicenseResponse> {
     const personData = await this.getPerson();
     this.Logger('Starting Scrapping DriverLicense');
-    console.time('Scrapping DriverLicense');
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_cnh`;
     this.Logger(`Requesting URL:"${URL}"`);
@@ -197,14 +196,12 @@ export class ScraperService implements OnModuleInit {
     const driverLicense = new DriverLicenseResponse();
     driverLicense.fillPersonAndCnhData(personData, cnh);
     console.log(driverLicense);
-    console.timeEnd('Scrapping DriverLicense');
     browser.close();
     return driverLicense;
   }
 
   private async getVehicle(): Promise<VehicleEntity> {
     this.Logger('Starting Scrapping Vehicle');
-    console.time('Scrapping Vehicle');
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_veiculos`;
     this.Logger(`Requesting URL:"${URL}"`);
@@ -217,14 +214,12 @@ export class ScraperService implements OnModuleInit {
 
     this.Logger('Vehicle Scrapped from the page');
     console.log(vehicle);
-    console.timeEnd('Scrapping Vehicle');
     browser.close();
     return vehicle;
   }
 
   private async getBankAccount(bank: BankEnum): Promise<BankAccountEntity> {
     this.Logger('Starting Scrapping Bank Account');
-    console.time('Scrapping Bank Account');
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_conta_bancaria`;
     this.Logger(`Requesting URL:"${URL}"`);
     const browser = await this.puppeteer.launch(this.options);
@@ -234,7 +229,6 @@ export class ScraperService implements OnModuleInit {
     const bankAccount = await this.generateBankAccount(bank, page);
     this.Logger('Bank Account Scrapped from the page');
 
-    console.timeEnd('Scrapping Bank Account');
     browser.close();
     return bankAccount;
   }
@@ -243,7 +237,6 @@ export class ScraperService implements OnModuleInit {
   //#region Public Methods
   async getPerson(): Promise<PersonResponse> {
     this.Logger('Starting Scrapping Person');
-    console.time('Scrapping Person');
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_pessoas`;
     this.Logger(`Requesting URL:"${URL}"`);
@@ -276,7 +269,6 @@ export class ScraperService implements OnModuleInit {
 
     var person = personResponseMapper.mapTo(results[0]);
     console.log(person);
-    console.timeEnd('Scrapping Person');
     browser.close();
     return person;
   }
@@ -284,8 +276,6 @@ export class ScraperService implements OnModuleInit {
   async getCard(brand: BrandEnum, bank: BankEnum): Promise<CardResponse> {
     try {
       this.Logger('Starting Scrapping CreditCard');
-      console.time('Scrapping Card and Bank Account');
-      console.time('Scrapping CreditCard');
 
       const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_numero_cartao_credito`;
       this.Logger(`Requesting URL:"${URL}"`);
@@ -297,7 +287,6 @@ export class ScraperService implements OnModuleInit {
       this.Logger('Page Loaded');
       const result = await this.generateCard(brand, page);
       this.Logger('Card Scrapped from the page');
-      console.timeEnd('Scrapping CreditCard');
 
       const bankAccount = await this.getBankAccount(bank);
 
@@ -306,19 +295,17 @@ export class ScraperService implements OnModuleInit {
       card.brand = brand;
       card.fillBankAccount(bankAccount);
       console.log(card);
-      console.timeEnd('Scrapping Card and Bank Account');
       browser.close();
       return card;
     } catch (error) {
-      console.timeEnd('Scrapping Card');
-      console.log(error);
+      console.error(error);
+      return null;
     }
   }
 
   async getDriver(): Promise<DriverResponse> {
     try {
       this.Logger('Generating a Driver');
-      console.time('Scrapping Driver');
 
       const driverLicense = await this.getDriverLicense();
       const vehicle = await this.getVehicle();
@@ -328,12 +315,11 @@ export class ScraperService implements OnModuleInit {
       const result = new DriverResponse(driverLicense, vehicleResponse);
       this.Logger('Driver Generated');
       console.log(result);
-      console.timeEnd('Scrapping Driver');
 
       return result;
     } catch (error) {
-      console.timeEnd('Scrapping Driver');
-      console.log(error);
+      console.error(error);
+      return null;
     }
   }
 

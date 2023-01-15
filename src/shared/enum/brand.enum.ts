@@ -5,7 +5,7 @@ export enum BrandEnum{
     AmericanExpress = 'amex',
     Discover = 'discover',
     EnRoute = 'enroute',
-    Jcb = 'jcp',
+    Jcb = 'jcb',
     Voyager = 'voyager',
     Hyper = 'hyper',
     Aura = 'aura',
