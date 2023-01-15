@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-import { Console } from 'console';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as fs from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -10,13 +10,14 @@ async function bootstrap() {
   
   app.enableCors();
 
+  const version = readChangeLogFileAndGetVersion();
   const config = new DocumentBuilder()
     .setTitle('Scrap4Devs Documentation')
     .setDescription(
-      `A Rest API to get some data from 4devs website`
+      `A REST API to retrieve data from 4Devs website by using our scraping service.`
     )
     .setContact('Matheus Muniz Dantas','https://matheusmuniz.dev','matheus.munizera@gmail.com')
-    .setVersion('1.2.0')
+    .setVersion(version)
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -28,3 +29,9 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+ function readChangeLogFileAndGetVersion() {
+const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+const version = changelog.match(/#\D*(.*)/)[1].trim();
+return version;
+ }
