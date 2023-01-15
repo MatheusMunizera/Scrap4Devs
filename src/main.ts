@@ -16,7 +16,7 @@ async function bootstrap() {
       `A Rest API to get some data from 4devs website`
     )
     .setContact('Matheus Muniz Dantas','https://matheusmuniz.dev','matheus.munizera@gmail.com')
-    .setVersion('1.0')
+    .setVersion('1.2.0')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

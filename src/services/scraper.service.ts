@@ -15,9 +15,11 @@ import { VehicleEntity } from '../core/domain/entities/vehicle.entity';
 import { VehicleResponseMapper } from '../core/domain/mappers/vehicle/vehicle-response.mapper';
 import { BankAccountEntity } from '../core/domain/entities/bank-account.entity';
 import { BankEnum } from '../shared/enum/bank.enum';
+import { BaseService } from '../core/services/base.service';
 
 @Injectable()
-export class ScraperService implements OnModuleInit {
+export class ScraperService extends  BaseService  implements OnModuleInit {
+
   @Inject(ConfigService)
   public baseUrl: string = process.env.BASE_URL_4DEVS;
   public config: ConfigService;
@@ -32,7 +34,8 @@ export class ScraperService implements OnModuleInit {
     this.puppeteer = puppeteer;
     this.options = options;
   }
-  constructor() {}
+
+  constructor() {super()}
 
   //#region Private Methods
 
@@ -90,10 +93,6 @@ export class ScraperService implements OnModuleInit {
         resolve(data);
       }, 500);
     });
-  }
-
-  private Logger(message: string) {
-    console.log(message);
   }
 
   private async generateDriverLicense(page: any): Promise<CnhEntity> {
@@ -195,7 +194,7 @@ export class ScraperService implements OnModuleInit {
 
     const driverLicense = new DriverLicenseResponse();
     driverLicense.fillPersonAndCnhData(personData, cnh);
-    console.log(driverLicense);
+    this.Logger(driverLicense);
     browser.close();
     return driverLicense;
   }
@@ -213,7 +212,7 @@ export class ScraperService implements OnModuleInit {
     const vehicle = await this.generateVehicle(page);
 
     this.Logger('Vehicle Scrapped from the page');
-    console.log(vehicle);
+    this.Logger(vehicle);
     browser.close();
     return vehicle;
   }
@@ -268,7 +267,7 @@ export class ScraperService implements OnModuleInit {
     const personResponseMapper = new PersonResponseMapper();
 
     var person = personResponseMapper.mapTo(results[0]);
-    console.log(person);
+    this.Logger(person);
     browser.close();
     return person;
   }
@@ -294,7 +293,7 @@ export class ScraperService implements OnModuleInit {
       var card = cardResponseMapper.mapTo(result as CardEntity);
       card.brand = brand;
       card.fillBankAccount(bankAccount);
-      console.log(card);
+      this.Logger(card);
       browser.close();
       return card;
     } catch (error) {
@@ -314,7 +313,7 @@ export class ScraperService implements OnModuleInit {
       var vehicleResponse = vehicleResponseMapper.mapTo(vehicle);
       const result = new DriverResponse(driverLicense, vehicleResponse);
       this.Logger('Driver Generated');
-      console.log(result);
+      this.Logger(result);
 
       return result;
     } catch (error) {
