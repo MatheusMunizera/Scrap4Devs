@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CardEntity } from '../core/domain/entities/card.entity';
 import { PersonEntity } from '../core/domain/entities/person.entity';
@@ -15,9 +15,11 @@ import { VehicleEntity } from '../core/domain/entities/vehicle.entity';
 import { VehicleResponseMapper } from '../core/domain/mappers/vehicle/vehicle-response.mapper';
 import { BankAccountEntity } from '../core/domain/entities/bank-account.entity';
 import { BankEnum } from '../shared/enum/bank.enum';
+import { BaseService } from '../core/services/base.service';
 
 @Injectable()
-export class ScraperService implements OnModuleInit {
+export class ScraperService extends  BaseService  implements OnModuleInit {
+
   @Inject(ConfigService)
   public baseUrl: string = process.env.BASE_URL_4DEVS;
   public config: ConfigService;
@@ -32,7 +34,8 @@ export class ScraperService implements OnModuleInit {
     this.puppeteer = puppeteer;
     this.options = options;
   }
-  constructor() {}
+
+  constructor() {super()}
 
   //#region Private Methods
 
@@ -90,10 +93,6 @@ export class ScraperService implements OnModuleInit {
         resolve(data);
       }, 500);
     });
-  }
-
-  private Logger(message: string) {
-    console.log(message);
   }
 
   private async generateDriverLicense(page: any): Promise<CnhEntity> {
@@ -182,7 +181,6 @@ export class ScraperService implements OnModuleInit {
   private async getDriverLicense(): Promise<DriverLicenseResponse> {
     const personData = await this.getPerson();
     this.Logger('Starting Scrapping DriverLicense');
-    console.time('Scrapping DriverLicense');
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_cnh`;
     this.Logger(`Requesting URL:"${URL}"`);
@@ -196,15 +194,13 @@ export class ScraperService implements OnModuleInit {
 
     const driverLicense = new DriverLicenseResponse();
     driverLicense.fillPersonAndCnhData(personData, cnh);
-    console.log(driverLicense);
-    console.timeEnd('Scrapping DriverLicense');
+    this.Logger(driverLicense);
     browser.close();
     return driverLicense;
   }
 
   private async getVehicle(): Promise<VehicleEntity> {
     this.Logger('Starting Scrapping Vehicle');
-    console.time('Scrapping Vehicle');
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_veiculos`;
     this.Logger(`Requesting URL:"${URL}"`);
@@ -216,15 +212,13 @@ export class ScraperService implements OnModuleInit {
     const vehicle = await this.generateVehicle(page);
 
     this.Logger('Vehicle Scrapped from the page');
-    console.log(vehicle);
-    console.timeEnd('Scrapping Vehicle');
+    this.Logger(vehicle);
     browser.close();
     return vehicle;
   }
 
   private async getBankAccount(bank: BankEnum): Promise<BankAccountEntity> {
     this.Logger('Starting Scrapping Bank Account');
-    console.time('Scrapping Bank Account');
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_conta_bancaria`;
     this.Logger(`Requesting URL:"${URL}"`);
     const browser = await this.puppeteer.launch(this.options);
@@ -234,7 +228,6 @@ export class ScraperService implements OnModuleInit {
     const bankAccount = await this.generateBankAccount(bank, page);
     this.Logger('Bank Account Scrapped from the page');
 
-    console.timeEnd('Scrapping Bank Account');
     browser.close();
     return bankAccount;
   }
@@ -243,7 +236,6 @@ export class ScraperService implements OnModuleInit {
   //#region Public Methods
   async getPerson(): Promise<PersonResponse> {
     this.Logger('Starting Scrapping Person');
-    console.time('Scrapping Person');
 
     const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_pessoas`;
     this.Logger(`Requesting URL:"${URL}"`);
@@ -275,8 +267,7 @@ export class ScraperService implements OnModuleInit {
     const personResponseMapper = new PersonResponseMapper();
 
     var person = personResponseMapper.mapTo(results[0]);
-    console.log(person);
-    console.timeEnd('Scrapping Person');
+    this.Logger(person);
     browser.close();
     return person;
   }
@@ -284,8 +275,6 @@ export class ScraperService implements OnModuleInit {
   async getCard(brand: BrandEnum, bank: BankEnum): Promise<CardResponse> {
     try {
       this.Logger('Starting Scrapping CreditCard');
-      console.time('Scrapping Card and Bank Account');
-      console.time('Scrapping CreditCard');
 
       const URL = `${process.env.BASE_URL_4DEVS}/gerador_de_numero_cartao_credito`;
       this.Logger(`Requesting URL:"${URL}"`);
@@ -297,7 +286,6 @@ export class ScraperService implements OnModuleInit {
       this.Logger('Page Loaded');
       const result = await this.generateCard(brand, page);
       this.Logger('Card Scrapped from the page');
-      console.timeEnd('Scrapping CreditCard');
 
       const bankAccount = await this.getBankAccount(bank);
 
@@ -305,20 +293,18 @@ export class ScraperService implements OnModuleInit {
       var card = cardResponseMapper.mapTo(result as CardEntity);
       card.brand = brand;
       card.fillBankAccount(bankAccount);
-      console.log(card);
-      console.timeEnd('Scrapping Card and Bank Account');
+      this.Logger(card);
       browser.close();
       return card;
     } catch (error) {
-      console.timeEnd('Scrapping Card');
-      console.log(error);
+      console.error(error);
+      return null;
     }
   }
 
   async getDriver(): Promise<DriverResponse> {
     try {
       this.Logger('Generating a Driver');
-      console.time('Scrapping Driver');
 
       const driverLicense = await this.getDriverLicense();
       const vehicle = await this.getVehicle();
@@ -327,13 +313,12 @@ export class ScraperService implements OnModuleInit {
       var vehicleResponse = vehicleResponseMapper.mapTo(vehicle);
       const result = new DriverResponse(driverLicense, vehicleResponse);
       this.Logger('Driver Generated');
-      console.log(result);
-      console.timeEnd('Scrapping Driver');
+      this.Logger(result);
 
       return result;
     } catch (error) {
-      console.timeEnd('Scrapping Driver');
-      console.log(error);
+      console.error(error);
+      return null;
     }
   }
 
